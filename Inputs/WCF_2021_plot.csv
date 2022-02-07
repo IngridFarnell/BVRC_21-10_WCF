@@ -1,0 +1,10 @@
+PlotID,Team,Date,Lat,Long,BEC_zone_harvest_unit,Location_descrip,Forest_mng_notes,tip_ups,mineral_soil,non_productive,fresh_logs,fwd,decayed_logs,moss,lichen,litter,forestfloor_collected,litter_collected,fwd_collected,mineralsoil_collected,aspect,slope_position,canopy_base_height,dist_canopy_understory,crown_closure
+WCF_1,IF/AP/TW,22-Oct-21,54.78579,-127.41603,ESSFmc_1,km 11 off McDonell FSR,clearcut with connecting reserves and some understory retention,0,3,0,6,25,0.5,8,0,57.5,N,Y,Y,Y,156,mid,NA,NA,0
+WCF_2,IF/AP/TW,22-Oct-21,54.77235,-127.36513,SBSmc2_3,km 8 near the fenced in mining residue area,clearcut - classic,0,6,5,0,12,15,27,0,35,N,Y,Y,Y,,mid,NA,NA,0
+WCF_3,IF/AP/EA,23-Oct-21,54.79777,-127.48368,SBSmc2_1,,clearcut-classic,0,2,1,0,30,3,4,0,60,Y,Y,Y,Y,222,mid,NA,NA,0
+WCF_4,IF/AP/EA,23-Oct-21,54.79037,-127.47038,SBS_mc2_3,,clearcut with some understory left,0,3,1,0,17,6,27,0.5,46,Y,Y,Y,Y,280,mid,NA,NA,0
+WCF_5,IF/EA/JM,24-Oct-21,54.71534,-127.18003,SBSdk_3,on Ptarmigan rd,clearcut - classic,0,5,2,0,11,18,28,0,36,N,Y,Y,Y,104,mid,NA,NA,0
+WCF_6,IF/EA/JM,23-Oct-21,54.71916,-127.16788,SBSdk_3,on Ptarmigan rd,clearcut,0,8,2,0,46,6,13,0,25,N,Y,Y,Y,93,mid,NA,NA,0
+WCF_7,IF/AP/TW,25-Oct-21,54.78586,-127.44624,ESSFmc_2,714 rd,clearcut - classic,0,0,0,0,40,7,28,0,25,N,Y,Y,Y,266,mid,NA,NA,0
+WCF_8,IF/AP/TW,25-Oct-21,54.78288,-127.37152,ESSFmc_2,709 rd at end of rd,clearcut with understory reserves left,0,7,8,0,12,7,35,1,31,N,Y,Y,Y,221,mid,NA,NA,0
+WCF_9,IF/TW/BM,26-Oct-21,54.74898,-127.18126,SBSdk_1,valleyview NEED GATE KEY,clearcut - classic,0,4,1,0,20,7,16,0,52,N,Y,Y,Y,82,mid,NA,NA,0
