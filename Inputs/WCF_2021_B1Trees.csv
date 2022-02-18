@@ -1,4 +1,4 @@
-PlotID,Sub-plot,Tree_tag,Species,Tree_class,DBH,Height,Crown_base_height,Fire_scars,Insects,Notes
+PlotID,SubPlot,Tree_tag,Species,Tree_class,DBH,Height,Crown_base_height,Fire_scars,Insects,Notes
 WCF_1,B1,101,Bl,1,17.3,15,1.6,N,N,
 WCF_2,B1,NA,NA,NA,NA,NA,NA,NA,NA,NO TREES
 WCF_3,B1,NA,NA,NA,NA,NA,NA,NA,NA,NO TREES

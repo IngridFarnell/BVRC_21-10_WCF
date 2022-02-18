@@ -1,4 +1,4 @@
-PlotID,Sub-plot,Species,Live/Dead,Height_class,Tally,Notes
+PlotID,SubPlot,Species,Live/Dead,Height_class,Tally,Notes
 WCF_1,A1,Pl,L,0-30,0,
 WCF_1,A1,Pl,L,31-130,0,
 WCF_1,A1,Pl,D,0-30,0,

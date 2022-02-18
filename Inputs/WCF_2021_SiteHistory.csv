@@ -1,10 +1,10 @@
-PlotID,OpeningID,Lat,Long,BEC_zone_harvest_unit,Year_harvested,Forest_mng_notes,Year_planted,Year_manual_brushed
-WCF_1,1669668,54.78579,-127.41603,ESSFmc_1,2016,clearcut with connecting reserves and some understory retention,2017,
-WCF_2,1451011,54.77235,-127.36513,SBSmc2_3,2011,clearcut - classic,2012,
-WCF_3,1652748,54.79777,-127.48368,SBSmc2_1,2015,clearcut-classic,2016,
-WCF_4,1451214,54.79037,-127.47038,SBS_mc2_3,2011,clearcut with some understory left,2012,
-WCF_5,1438510,54.71534,-127.18003,SBSdk_3,2009,clearcut - classic,2009,2013
-WCF_6,1451232,54.71916,-127.16788,SBSdk_3,2011,clearcut,2012,2019
-WCF_7,1611386,54.78586,-127.44624,ESSFmc_2,2013,clearcut - classic,2015,
-WCF_8,1611303,54.78288,-127.37152,ESSFmc_2,2014,clearcut with understory reserves left,2015,
-WCF_9,1670494,54.74898,-127.18126,SBSdk_1,2015,clearcut - classic,2016,
+PlotID,OpeningID,Lat,Long,BECzone,BEC_zone_harvest_unit,Year_harvested,Forest_mng_notes,Year_planted,Year_manual_brushed
+WCF_1,1669668,54.78579,-127.41603,ESSFmc,ESSFmc_1,2016,clearcut with connecting reserves and some understory retention,2017,
+WCF_2,1451011,54.77235,-127.36513,SBSmc2,SBSmc2_3,2011,clearcut - classic,2012,
+WCF_3,1652748,54.79777,-127.48368,SBSmc2,SBSmc2_1,2015,clearcut-classic,2016,
+WCF_4,1451214,54.79037,-127.47038,SBSmc2,SBSmc2_3,2011,clearcut with some understory left,2012,
+WCF_5,1438510,54.71534,-127.18003,SBSdk,SBSdk_3,2009,clearcut - classic,2009,2013
+WCF_6,1451232,54.71916,-127.16788,SBSdk,SBSdk_3,2011,clearcut,2012,2019
+WCF_7,1611386,54.78586,-127.44624,ESSFmc,ESSFmc_2,2013,clearcut - classic,2015,
+WCF_8,1611303,54.78288,-127.37152,ESSFmc,ESSFmc_2,2014,clearcut with understory reserves left,2015,
+WCF_9,1670494,54.74898,-127.18126,SBSdk,SBSdk_1,2015,clearcut - classic,2016,
