@@ -1,8 +1,8 @@
-# Carbon Analysis
+# Fuels Analysis
 # Ingrid Farnell
-# Jan 7, 2022
+# Feb 18, 2022
 
-# This script converts all of the raw data into carbon
+# This script converts all of the raw data into biomass and bins the fuels into categories based on...
 
 #------------------------ Load libraries---------------------------------------#
 #--------------- Load libraries----------------#
@@ -15,7 +15,7 @@ if(length(new.packages)) install.packages(new.packages)
 lapply(ls, library, character.only = TRUE)  # load the required packages
 rm(ls, new.packages)
 
-source("./R/CarbonFunctions.R")
+source("./R/BiomassFunctions.R")
 
 #------------------------- Load data-------------------------------------------#
 # Plot
@@ -31,7 +31,7 @@ CWD <- fread("./Inputs/WCF_2021_CWD.csv")
 FWD <- fread("./Inputs/WCF_2021_FWD.csv")
 transect <- fread("./Inputs/WCF_2021_TransectHorizontalDistance.csv")
 
-# Soil, forest floor, litter, FWD
+# Forest floor, litter, FWD
 Soils <- fread("./Inputs/WCF_2021_Soils.csv")
 
 
@@ -46,68 +46,64 @@ FWD[,PlotID:= as.factor(PlotID)]
 transect[,PlotID:= as.factor(PlotID)]
 Soils[, PlotID:= as.factor(PlotID)]
 
-#---------------------------- Calculate carbon pools---------------------------#
-#---------------------------- Tree Carbon
+#------------------------ Calculate Canopy Bulk Density------------------------#
+#---------------------------- Tree
 # A1 plot = 5.64m radius = 100m2, B1 = 11.28m radius= 400 m2, A2 = 3.99m radius = 50m2
 
-## Convert to Mg/ha: Kg/m2 x 10
-#(Kg C in the tree)/plot are(m2) x (1Mg/1000kg) x (10000m2/ha) == (Kg C in the tree)/plot are(m2) x 10
+## Calculate canopy fuel load (kg/m2), then divide by average crown length to get
+# Canopy bulk density - Cruz et al. 2003 methods
+# Using biomass of foliage and branches
 
 table(A1trees[,Species])
 table(A1trees[,Tree_class])
 table(B1trees[,Species])
 table(B1trees[,Tree_class])
 
-# A1 trees carbon
-t <- vector()
+# A1 trees canopy fuel load (kg/m2) and crown length (m)
+m <- vector()
 for(i in 1:nrow(A1trees)){
-  t[i] <- TreeCarbonFN(Species = A1trees[i,Species], DBH= A1trees[i,DBH], 
+  m[i] <- TreeCanopyBiomassFN(Species = A1trees[i,Species], DBH= A1trees[i,DBH], 
                        HT= A1trees[i,Height], Tree_class=A1trees[i,Tree_class])
 }
 
 table(A1trees[,SubPlot])
-A1trees[,AreaSearchM2 := ifelse(SubPlot=="A1",100, ifelse(SubPlot=="A2",50,400))]
-A1trees[,MgPerHa_fac:=10/AreaSearchM2] #calculating the factor to mulitply to get Mg/Ha
-A1trees[,CarbonPerHa:=t*MgPerHa_fac]
-A1trees[is.na(CarbonPerHa)]#NO TREES, biomass==0
-A1trees[is.na(CarbonPerHa), CarbonPerHa:=0]
-A1trees[CarbonPerHa ==0]
+A1trees[,AreaM2 := ifelse(SubPlot=="A1",100, ifelse(SubPlot=="A2",50,400))]
+A1trees[,CanopyFuelsKgM2:=m/AreaM2]
+A1trees[is.na(CanopyFuelsKgM2)]#NO TREES, canopy biomass==0
+A1trees[is.na(CanopyFuelsKgM2), CanopyFuelsKgM2:=0]
+A1trees[CanopyFuelsKgM2 ==0]
 
-# B1 trees biomass
+A1trees[,CrownLength := (Height - Crown_base_height)]
+A1trees[is.na(CrownLength), CrownLength:=0]
+
+
+# B1 trees canopy fuel load (kg/m2) and crown length (m)
 table(B1trees[,SubPlot])
 r <- vector()
 for(i in 1:nrow(B1trees)){
-  r[i] <- TreeCarbonFN(Species = B1trees[i,Species], DBH= B1trees[i,DBH], 
+  r[i] <- TreeCanopyBiomassFN(Species = B1trees[i,Species], DBH= B1trees[i,DBH], 
                        HT= B1trees[i,Height], Tree_class=B1trees[i,Tree_class])
 }
 
-B1trees[,AreaSearchM2 := ifelse(SubPlot=="A1",100, ifelse(SubPlot=="A2",50,400))]
-B1trees[,MgPerHa_fac:=10/AreaSearchM2] #calculating the factor to mulitply to get Mg/Ha
-B1trees[,CarbonPerHa:=r*MgPerHa_fac]
-B1trees[is.na(CarbonPerHa)]#NO TREES, biomass==0
-B1trees[is.na(CarbonPerHa), CarbonPerHa:=0]
+B1trees[,AreaM2 := ifelse(SubPlot=="A1",100, ifelse(SubPlot=="A2",50,400))]
+B1trees[,CanopyFuelsKgM2:=r/AreaM2]
+B1trees[is.na(CanopyFuelsKgM2)]#NO TREES, canopy biomass==0
+B1trees[is.na(CanopyFuelsKgM2), CanopyFuelsKgM2:=0]
+
+B1trees[,CrownLength := (Height - Crown_base_height)]
+B1trees[is.na(CrownLength), CrownLength:=0]
+
 
 # Merge A1 and B1 together
-A1B1trees <- rbind(A1trees[,.(PlotID,SubPlot,Species,DBH,Height,Tree_class,AreaSearchM2,CarbonPerHa)], 
-                   B1trees[,.(PlotID,SubPlot,Species,DBH,Height,Tree_class,AreaSearchM2,CarbonPerHa)])
-A1B1trees[,PHF:=10000/AreaSearchM2] #accounting for smaller search areas
+A1B1trees <- rbind(A1trees[,.(PlotID,SubPlot,Species,DBH,Height,Tree_class,AreaM2,CanopyFuelsKgM2,CrownLength)], 
+                   B1trees[,.(PlotID,SubPlot,Species,DBH,Height,Tree_class,AreaM2,CanopyFuelsKgM2,CrownLength)])
 
 
-#Live trees by plot
-LiveTree_plots <- merge(site[,.(PlotID)],A1B1trees[Tree_class<3, sum(CarbonPerHa),by="PlotID"],
-                        by.x="PlotID", by.y="PlotID", all=TRUE)
-LiveTree_plots$V1[is.na(LiveTree_plots$V1)] <-0
-setnames(LiveTree_plots,"V1","LiveTreeCperHa")
+# Trees by plot
+PlotTrees <- A1B1trees[,.(CanopyBulkDensity = sum(CanopyFuelsKgM2)/mean(CrownLength)), by="PlotID"]
+PlotTrees[is.na(CanopyBulkDensity), CanopyBulkDensity:=0]
 
-#Dead trees by plot
-DeadTree_plots <- merge(site[,.(PlotID)],A1B1trees[Tree_class>=3, sum(CarbonPerHa),by="PlotID"],
-                        by.x="PlotID", by.y="PlotID", all=TRUE)
-DeadTree_plots$V1[is.na(DeadTree_plots$V1)] <-0
-setnames(DeadTree_plots,"V1","DeadTreeCperHa")
-
-# Live and dead trees by plot
-live_dead_CperHa <- merge(LiveTree_plots,DeadTree_plots,by="PlotID")
-site <- merge(site,live_dead_CperHa,by="PlotID")
+site <- merge(site,PlotTrees,by="PlotID")
 
 
 #--------------------------------- Regen carbon 
@@ -130,14 +126,6 @@ setnames(PlotRegen, c("L","D"), c("Regen_L_MGHa","Regen_D_MGHa"))
 site <- merge(site, PlotRegen, by.x="PlotID", by.y="PlotID")
 
 
-#--------------------------------- Root carbon
-#root biomass: - calculating this off of total live carbon below 0.22xlive stand biomas 
-#Wang et al 2012 decay rate of dead roots. Only applied this to dead trees, but left dead roots with "non-decayed" carbon
-#decided to remove dead roots from dead carbon pool
-
-site[,LiveRootC:=((LiveTreeCperHa*0.222)+(Regen_L_MGHa*0.222)),by="PlotID"] #root =  0.222 x live biomass
-site[,DeadRootC:=((DeadTreeCperHa*exp(-0.1044*(2021-Year_harvested)))+ #decaying the tree roots by time since fire
-                             (Regen_D_MGHa*0.222)),by="PlotID"] #root =  0.222 x  dead biomass
 
 
 #------------------------------- Mineral soil carbon

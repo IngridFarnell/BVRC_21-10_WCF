@@ -73,7 +73,7 @@ A1trees[is.na(CarbonPerHa)]#NO TREES, biomass==0
 A1trees[is.na(CarbonPerHa), CarbonPerHa:=0]
 A1trees[CarbonPerHa ==0]
 
-# B1 trees biomass
+# B1 trees carbon
 table(B1trees[,SubPlot])
 r <- vector()
 for(i in 1:nrow(B1trees)){
