@@ -128,37 +128,15 @@ site <- merge(site, PlotRegen, by.x="PlotID", by.y="PlotID")
 
 
 
-#------------------------------- Mineral soil carbon
-# Waiting on lab results
+#-----------------------------------Surface fuels------------------------------#
 
-
-#--------------------------------- Litter carbon
-# collected in 4 * 20cm x 20cm area = 0.16m2 = 1.6e-05 ha 
-
-#add litter from mineral soil to litter - there is none so don't do
-site[,Litter_C_g := Soils[,(Litter_DryWgt*0.46)]] # 0.46 = avg from frontiers litter carbon %
-site[,Litter_C_MgHa := Litter_C_g/16]
-
-
-#--------------------------------- Forest floor carbon
-# area collection = 4 x 0.20 x 0.20 = 0.16m2
-
-#calculating the volume of forest floor (F and H layers)
-site[, ForestFloor_C_g := Soils[, ForFloor_DryWgt*0.40]] # 0.40 = avg from frontiers forest floor carbon %
-site[, ForestFl_MgHa := ForestFloor_C_g/16] #converting to Mg/Ha
-
-
-#-------------------------------- V small FWD carbon
-# area collection = 4 x 0.20 x 0.20 = 0.16m2
-site[, vFWD_C_g := Soils[, FWD_DryWgt*0.50]]
-site[, vFWD_MgHa := vFWD_C_g/16] #converting to Mg/Ha
-
-
-#-------------------------------------- CWD
-# Transect line horizontal distances
-transect.plot <- transect[,.(Hor.dist = sum(Horizontal_distance)), by = "PlotID"] # sum horizontal distance for each plot
-
-##################################################################
+#------------------------------------CWD (1000-hr fuel) (T/ha == Mg/ha)
+##############################################################
+#  Calculate volume then weight per load class (1-1000hr)
+#     1-hr < 0.6 cm diam
+#     10-hr 0.6 - 2.5 cm diam
+#     100-hr 2.5 - 7.6 cm
+#     1000 hr fuel - 7.7 - 20 cm: calculate sound (1-3) and rotten (4-5) load separately
 
 # To convert volume (calculated using the VanWagner formula) to carbon you have to 
 # calculate the volume for each decay class and species, then convert that to live biomass then dead biomass
@@ -175,30 +153,40 @@ transect.plot <- transect[,.(Hor.dist = sum(Horizontal_distance)), by = "PlotID"
 # D = diameter of each piece of CWD (cm)
 
 ################################################################
+# Transect line horizontal distances
+transect.plot <- transect[,.(Hor.dist = sum(Horizontal_distance)), by = "PlotID"] # sum horizontal distance for each plot
 
-# Plot summary by Decay class
-CWD.plot <- CWD[,.(D2 = sum(Diam_cm^2)), by = c("PlotID", "Decay_class", "Species")]
+# Make sure min diameter is 7.6 
+min(CWD$Diam_cm)
+
+# Plot summary by hourly fuel class (1000-hr) and sound/rotten class
+CWD[,RottenSound:= ifelse(Decay_class >3, "rotten",
+                        "sound")]
+
+
+CWD.plot <- CWD[,.(D2 = sum(Diam_cm^2)), by = c("PlotID", "Decay_class", "Species", "RottenSound")]
 CWD.plot <- merge(CWD.plot, transect.plot, by = "PlotID") # merge with transect line
 
 # Calculate plot volume(m3/ha) for each decay class
 CWD.plot[, volume_ha := (pi^2/(8*Hor.dist) * D2)] 
 
-# Assign carbon to new column
+# Calculate plot biomass for each species and decay class
 t <- vector()
 for(i in 1:nrow(CWD.plot)){
-  t[i] <- cwdCarbonFN(volume_ha = CWD.plot[i, volume_ha], 
+  t[i] <- cwdBiomassFN(volume_ha = CWD.plot[i, volume_ha], 
                       Decay_class = CWD.plot[i, Decay_class], 
                       Species = CWD.plot[i,Species])
 }
-
-CWD.plot[, CWD_C := t]
-
-# Sum total carbon in each plot
-PlotCWD <- CWD.plot[, .(CWD_C =sum(CWD_C)), by = "PlotID"]
-site <- merge(site, PlotCWD, by = "PlotID")
+CWD.plot[, CWD_B:=t]
 
 
-#--------------------------------- FWD
+# Sum volume by hourly fuel (1000-hr_sound or 1000-hr_rotten)
+CWDsound <- CWD.plot[,.('1000hr_sound'=sum(CWD_B[RottenSound=="sound"])), by = "PlotID"]
+CWDrotten <- CWD.plot[,.('1000hr_rotten'=sum(CWD_B[RottenSound=="rotten"])), by = "PlotID"]
+site <- list(site, CWDsound, CWDrotten) %>% reduce(full_join)
+
+
+#--------------------------------- FWD (100hr, 10hr fuels) (T/ha == Mg/ha)
 # fwd only measured on 10m of each line (=20m both lines), so subtract remaing 80 m from total length
 transect.plot[, fwd.dist:= (Hor.dist - 80)]
 
@@ -208,9 +196,8 @@ FWD.plot <- FWD[, .(Tally = sum(Tally)), by = c("PlotID", "Diam_class")]
 # Merge line and fwd data
 FWD.plot <- merge(FWD.plot, transect.plot, by = "PlotID")
 
-##################################################################
-
-# To convert volume (calculated using the VanWagner formula) to carbon you have to 
+################################################################
+# To convert volume (calculated using the VanWagner formula) to biomass you have to 
 # calculate the volume for each decay class, then convert that to live biomass then dead biomass
 
 # However, we only tallied the pieces by diameter class and did not record species or decay class
@@ -271,17 +258,39 @@ for (i in 1:nrow(FWD.plot)) {
 FWD.plot[, volume_ha:= m]
 
 
-# Assign carbon to new column
+# Assign biomass to new column
 c <- vector()
 for(i in 1:nrow(FWD.plot)){
-  c[i] <- fwdCarbonFN(volume = FWD.plot[i,volume_ha], 
+  c[i] <- fwdBiomassFN(volume = FWD.plot[i,volume_ha], 
                       Diam_class = FWD.plot[i, Diam_class])
 }
-FWD.plot[, carbon:= c]
+FWD.plot[, biomass:= c]
 
-# Sum total carbon in each plot
-PlotFWD <- FWD.plot[, .(FWD_C = sum(carbon)), by = "PlotID"]
-site <- merge(site, PlotFWD, by = "PlotID")
+# Hourly fuels per plot
+Plot100hr <- FWD.plot[,.('100hr'=sum(biomass[Diam_class=="5.1-7.5"| Diam_class=="2.6-5"])), by = "PlotID"] # 2.5 - 7.6 cm
+Plot10hr <- FWD.plot[,.('10hr'=sum(biomass[Diam_class=="1.1-2.5"])), by = "PlotID"] # 0.6 - 2.5
+site <- list(site, Plot100hr, Plot10hr) %>% reduce(full_join)
+
+#-------------------------------- Fine fuel <1 cm diam = 1hr fuel
+# area collection = 4 x 0.20 x 0.20 = 0.16m2
+site[,'1hr':= Soils[, (FWD_DryWgt/16)]] #converting to Mg/Ha
+
+
+
+#--------------------------------------Ground fuels---------------------------#
+#--------------------------------- Litter
+# Calculate weight
+# collected in 4 * 20cm x 20cm area = 0.16m2 = 1.6e-05 ha 
+site[,Litter:= Soils[,(Litter_DryWgt/16)]]
+
+
+#--------------------------------- Forest floor/duff
+# area collection = 4 x 0.20 x 0.20 = 0.16m2
+site[, Duff:= Soils[,(ForFloor_DryWgt/16)]] #converting to Mg/Ha
+
+
+
+
 
 
 

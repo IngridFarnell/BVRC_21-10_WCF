@@ -3,7 +3,7 @@
 #Feb 18, 2022
 
 
-##################### Tree carbon (kg/tree) ############################
+##################### Tree biomass (kg/tree) ############################
 # Biomass is calculated using Ung et al. 2008 allometric equations. biomass is in kg. 
 
 # Standing dead (SD) A decay class and species specificstructural reduction

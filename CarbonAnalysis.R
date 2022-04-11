@@ -141,7 +141,62 @@ site[,DeadRootC:=((DeadTreeCperHa*exp(-0.1044*(2021-Year_harvested)))+ #decaying
 
 
 #------------------------------- Mineral soil carbon
-# Waiting on lab results
+#### Mineral soil (T/ha) = volume(m3/ha)
+# calculate the fine fraction BulkDensity
+# fine fraction bulk density defined in Bulmer and Simpson 2010 (Soil Compaction Reduced the Growth of Lodgepole Pine and Douglas-fi r Seedlings in Raised Beds after Two Growing Seasons) Fine fraction
+# "bulk density was determined after passing the sample through a 2-mm sieve and assuming a coarse fragment specific gravity of 2650 kg m−3 according to:
+#  DBff = (Ws – Wcf )/[Vtot – (Wcf/2650)]
+# where DBff is fine fraction bulk density,
+# Ws is the total weight of the sample retrieved from the bulk density core,
+# Wcf is the weight of coarse fragments retained on the 2-mm sieve,
+# Vtot is the total volume of the sample core.
+# The 500 is an estimate of the organic fragment particle density I usually just use the density of wood from a table like this (Density of wood in kg/m3, g/cm3, lb/ft3 - the ultimate guide - EngineeringClicks), from e-mail with Chuck Bulmer
+# Can get a better esimate by putting roots and charcoal into graduated cylinder
+
+# option 2 for bulk density:
+#  BulkDens[,BDest_finefract_g_cm3 := -1.977+4.105 x (C_pro/0.47)- 1.229 x log(C_pro/0.47) - 0.103*log(C_pro/0.47)^2]
+
+# Erica changed this so roots are not added in (C in roots is estimated from tree biomass)
+# it would be interesting to look at the C in roots from our samples and compare with the estimates from tree biomass
+
+# Change percent C from lab analysis to proportion C
+Soils[,C_pro := MinSoil_C_PC/100]
+
+# calculating bulk density
+Soils[,TotalSample_wgt_kg := (MinSoil_FineWgt + MinSoil_CoarseWgt + 
+                                MinSoil_WoodChunks + MinSoil_BlackC)/1000]
+Soils[,CoarseFrag_wgt_kg := (MinSoil_CoarseWgt)/1000]
+# Bulk density calculations:
+Soils[,OrgFrag_wgt_kg := (MinSoil_WoodChunks + MinSoil_BlackC)/1000]
+Soils[,FineFract_wgt_kg := (MinSoil_FineWgt)/1000]
+Soils[,CoarseAndOrgFragM3M3 := (CoarseFrag_wgt_kg/2650 + OrgFrag_wgt_kg/500)/ (BulkDensity_ml/1000000) ]
+
+#### Fine fraction BulkDensity ####
+# fine fraction bulk density defined in Bulmer and Simpson 2010 (Soil Compaction Reduced the Growth of Lodgepole Pine and Douglas-fi r Seedlings in Raised Beds after Two Growing Seasons) Fine fraction
+Soils[,BDcalc_finefract := FineFract_wgt_kg/((BulkDensity_ml/1000000)-
+                                               (CoarseFrag_wgt_kg/2650)-(OrgFrag_wgt_kg/500))]#kg/m3
+FR_minSOC_finefract_kg_m2 <- Min_SOC(Soc = Soils[,C_pro], BD = Soils[,BDcalc_finefract],
+                                     depth = Soils[,BDDepth], CoarseFrags = Soils[,CoarseAndOrgFragM3M3])
+# getting a negative BD.. 
+
+#### Soil Organic Carbon ####
+#using 0.5 biomass to C conversion for litter and roots as per Michelle equations
+#using a 0.75 char to C mass conversion from Donato et al. 2009 (Quantifying char in postfire woody detritus inventories)
+Soils[,FR_BlackC_kg := (MinSoil_BlackC*0.75)/1000] #removed roots, and added litter to litter
+Soils[,FR_BlackC_kg_m2:= FR_BlackC_kg/(BulkDensity_ml/1000000) * BDDepth]
+
+Soils[,FR_SOM:= C_pro/0.47]
+Soils[,BDcalc_finefract_g_cm3 := BDcalc_finefract*1000/1e+06] #calculate finefraction
+
+## WCF_9 seems a little wonky - ask Alana if she thinks would should estimate it instead
+
+
+####### ADD TEXTURES ########
+Soils[,CLAY := sum(MinSoil_Clay_PC_hyd,MinSoil_Clay_PC_h202_hyd,na.rm = TRUE), by="ID"] # what is it summing?
+Soils[,SILT := sum(MinSoil_Silt_PC_hyd, MinSoil_Silt_PC_h202_hyd,na.rm = TRUE), by="ID"]
+Soils[,SAND := sum(MinSoil_Sand_PC_hyd,MinSoil_Sand_PC_h202_hyd,na.rm = TRUE), by="ID"]
+Soils[,TotalTexture := CLAY + SILT + SAND]
+
 
 
 #--------------------------------- Litter carbon
