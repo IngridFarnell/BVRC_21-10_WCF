@@ -208,7 +208,7 @@ site[,Litter_C_MgHa := Litter_C_g/16]
 
 
 #--------------------------------- Forest floor carbon
-# area collection = 4 x 0.20 x 0.20 = 0.16m2
+# area collection = 4 x 0.20 x 0.20 = 0.16m2 = 1.6e-05 ha 
 
 #calculating the volume of forest floor (F and H layers)
 site[, ForestFloor_C_g := Soils[, ForFloor_DryWgt*0.40]] # 0.40 = avg from frontiers forest floor carbon %
@@ -216,7 +216,7 @@ site[, ForestFl_MgHa := ForestFloor_C_g/16] #converting to Mg/Ha
 
 
 #-------------------------------- V small FWD carbon
-# area collection = 4 x 0.20 x 0.20 = 0.16m2
+# area collection = 4 x 0.20 x 0.20 = 0.16m2 = 1.6e-05 ha 
 site[, vFWD_C_g := Soils[, FWD_DryWgt*0.50]]
 site[, vFWD_MgHa := vFWD_C_g/16] #converting to Mg/Ha
 

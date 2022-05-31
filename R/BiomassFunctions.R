@@ -499,198 +499,85 @@ RegenBiomassFN_Ung <- function(Species, Height_class, Diam_est, Health){ # Live_
 }
 
 
-#--------------------- Canopy fuel load----------------------------#
-# Cnaopy biomass is calculated using Ung et al. 2008 allometric equations. biomass is in kg. 
-# Only using foliage & branches for canopy fuel load
+#--------------------- Crown foliage biomass----------------------------#
+# Foliage biomass is calculated using Ung et al. 2008 allometric equations. biomass is in kg. 
+# Only using foliage and 0.5 of branches (Smith)
 
-# Standing dead (SD) A decay class and species specificstructural reduction
-# factor is applied to each of the components of the allometric equation i.e. bark, bole, top. This accounts for the loss 
-# of biomass through decay (Domke et al. 2011). A species and decay class density reduction factor is applied, this 
-# accounts for the density loss through decay (Harmon et al. 2011).
+# yBranches = Bbranches1 x Diam^Bbranches2 x Height^Bbranches3 + ebranches
+# yFoliage = Bfoliage1 x Diam^Bfoliage2 x Height^Bfoliage3 + efoliage
+# yCrown = 0.5(yBranches) + yFoliage
 
-# SDCarbon (kg) = BIOMASS x SRF x DCRF
-# SDCarbon (kg) = ((Yfoliage*SRF) + (Ybranches*SRF)) X DCRF
+# Dead trees have lost their foliage so they will have 0s for all crown calculations
 
-TreeCanopyBiomassFN <- function(Species,DBH,HT,Tree_class){
+CanopyBiomassFN <- function(Species,DBH,HT,Tree_class){
   if(is.na(Species)){
     print(paste("Species is not found"))
     Sp_CB <- NA
   } else if(Species=="At"){
     if(Tree_class < 3 ){
-      Sp_CB <-(0.0150*DBH^2.9068*HT^-0.6306)+(0.0284*DBH^1.6020)
-    } else if (Tree_class == 3){
-      Sp_CB <-((0.0150*DBH^2.9068*HT^-0.6306)*1)*0.97
-    } else if (Tree_class == 4){
-      Sp_CB <-((0.0150*DBH^2.9068*HT^-0.6306)*0.5)*0.75
-    } else if(Tree_class == 5){
-      Sp_CB <-((0.0150*DBH^2.9068*HT^-0.6306)*0.2)*0.868
-    } else if(Tree_class == 6){
-      Sp_CB <-((0.0150*DBH^2.9068*HT^-0.6306)*0.1)*0.613
-    } else if(Tree_class == 7){
-      Sp_CB <-((0.0150*DBH^2.9068*HT^-0.6306)*0)*0.613
-    } else if(Tree_class == 8){
-      Sp_CB <-((0.0150*DBH^2.9068*HT^-0.6306)*0)*0.613
+      Sp_CB <-(0.5*(0.0150*DBH^2.9068*HT^-0.6306))+(0.0284*DBH^1.6020)
+    } else if (Tree_class >= 3){
+      Sp_CB <-0
     }
-    
   } else if(Species=="Ac"){
     if(Tree_class < 3){
-      Sp_CB <-(0.0131*DBH^2.5760)+(0.0224*DBH^1.8368)
-    } else if (Tree_class == 3){
-      Sp_CB <-((0.0131*DBH^2.5760)*1)*1.006
-    } else if (Tree_class == 4){
-      Sp_CB <-((0.0131*DBH^2.5760)*0.5)*0.793
-    } else if (Tree_class == 5){
-      Sp_CB <-((0.0131*DBH^2.5760)*0.2)*0.868
-    } else if (Tree_class == 6){
-      Sp_CB <-((0.0131*DBH^2.5760)*0.1)*0.613
-    } else if (Tree_class == 7){
-      Sp_CB <-((0.0131*DBH^2.5760)*0)*0.613
-    } else if (Tree_class == 8){
-      Sp_CB <-((0.0131*DBH^2.5760)*0)*0.613
+      Sp_CB <-(0.5*(0.0131*DBH^2.5760))+(0.0224*DBH^1.8368)
+    } else if (Tree_class >= 3){
+      Sp_CB <-0
     }
   } else if(Species=="Cw"){
     if(Tree_class < 3){
-      Sp_CB <-(0.0611*DBH^1.9208)+(0.1097*DBH^1.5530)
-    } else if (Tree_class == 3){
-      Sp_CB <-((0.0131*DBH^2.5760)*1)*1.040
-    } else if (Tree_class == 4){
-      Sp_CB <-((0.0131*DBH^2.5760)*0.5)*0.960
-    } else if (Tree_class == 5){
-      Sp_CB <-((0.0131*DBH^2.5760)*0.2)*1.064
-    } else if (Tree_class == 6){
-      Sp_CB <-((0.0131*DBH^2.5760)*0.1)*0.656
-    } else if (Tree_class == 7){
-      Sp_CB <-((0.0131*DBH^2.5760)*0)*0.656
-    } else if (Tree_class == 8){
-      Sp_CB <-((0.0131*DBH^2.5760)*0)*0.656
+      Sp_CB <-(0.5*(0.0611*DBH^1.9208))+(0.1097*DBH^1.5530)
+    } else if (Tree_class >= 3){
+      Sp_CB <-0
     }
   } else if(Species=="Bl"){
     if(Tree_class < 3){
-      Sp_CB <-(0.0265*DBH^3.6747*HT^-1.5958)+(0.0509*DBH^2.9909*HT^-1.2271)
-    } else if (Tree_class == 3){
-      Sp_CB <-((0.0265*DBH^3.6747*HT^-1.5958)*1)*1.04
-    } else if (Tree_class == 4){
-      Sp_CB <-((0.0265*DBH^3.6747*HT^-1.5958)*0.5)*1.068
-    } else if (Tree_class == 5){
-      Sp_CB <-((0.0265*DBH^3.6747*HT^-1.5958)*0.2)*1
-    } else if (Tree_class == 6){
-      Sp_CB <-((0.0265*DBH^3.6747*HT^-1.5958)*0.1)*0.696
-    } else if (Tree_class == 7){
-      Sp_CB <-((0.0265*DBH^3.6747*HT^-1.5958)*0)*0.696
-    } else if (Tree_class == 8){
-      Sp_CB <-((0.0265*DBH^3.6747*HT^-1.5958)*0)*0.696
+      Sp_CB <-(0.5*(0.0265*DBH^3.6747*HT^-1.5958))+(0.0509*DBH^2.9909*HT^-1.2271)
+    } else if (Tree_class >= 3){
+      Sp_CB <-0
     }  
   } else if(Species=="Ep"){
     if(Tree_class < 3){
-      Sp_CB <-(0.0253*DBH^3.1518*HT^-0.9083)+(0.1361*DBH^2.2978*HT^-1.0934)
-    } else if(Tree_class == 3){
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*1)*1.016
-    } else if(Tree_class == 4){
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0.5)*0.713
-    } else if(Tree_class == 5) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0.2)*0.777
-    } else if(Tree_class == 6) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0.1)*0.439
-    } else if(Tree_class == 7) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0)*0.439
-    } else if(Tree_class == 8) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0)*0.439
+      Sp_CB <-(0.5*(0.0253*DBH^3.1518*HT^-0.9083))+(0.1361*DBH^2.2978*HT^-1.0934)
+    } else if(Tree_class >= 3){
+      Sp_CB <-0
     }
   } else if(Species=="Hw"){
     if(Tree_class < 3){
-      Sp_CB <(0.0609*DBH^2.0021)+(0.2656*DBH^2.0107*HT^-0.7963)
-    } else if(Tree_class == 3){
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*1)*1.040
-    } else if(Tree_class == 4) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0.5)*1.080
-    } else if(Tree_class == 5) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0.2)*0.848
-    } else if(Tree_class == 6) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0.1)*0.525
-    } else if(Tree_class == 7) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0)*0.525
-    } else if(Tree_class == 8) {
-      Sp_CB <-((0.0253*DBH^3.1518*HT^-0.9083)*0)*0.525
+      Sp_CB <-(0.5*(0.0609*DBH^2.0021))+(0.2656*DBH^2.0107*HT^-0.7963)
+    } else if(Tree_class >= 3){
+      Sp_CB <-0
     }
   } else if(Species=="Pl"){
     if(Tree_class < 3){
-      Sp_CB <-(0.0285*DBH^3.3764*HT^-1.4395)+(0.0769*DBH^2.6834*HT^-1.2484)
-    } else if(Tree_class == 3){
-      Sp_CB <-((0.0285*DBH^3.3764*HT^-1.4395)*1)*0.98
-    } else if(Tree_class == 4){
-      Sp_CB <-((0.0285*DBH^3.3764*HT^-1.4395)*0.5)*1.04
-    } else if(Tree_class == 5){
-      Sp_CB <-((0.0285*DBH^3.3764*HT^-1.4395)*0.2)*1.02
-    } else if(Tree_class == 6){
-      Sp_CB <-((0.0285*DBH^3.3764*HT^-1.4395)*0.1)*0.727
-    } else if(Tree_class == 7){
-      Sp_CB <-((0.0285*DBH^3.3764*HT^-1.4395)*0)*0.727
-    } else if(Tree_class == 8){
-      Sp_CB <-((0.0285*DBH^3.3764*HT^-1.4395)*0)*0.727           
+      Sp_CB <-(0.5*(0.0285*DBH^3.3764*HT^-1.4395))+(0.0769*DBH^2.6834*HT^-1.2484)
+    } else if(Tree_class >= 3){
+      Sp_CB <-0
     }
   } else if(Species=="Sx"){
     if(Tree_class < 3){
-      Sp_CB <-(0.0428*DBH^2.7965*HT^-0.7328)+(0.0854*DBH^2.4388*HT^-0.7630)
-    } else if(Tree_class == 3){  
-      Sp_CB <-((0.0428*DBH^2.7965*HT^-0.7328)*1)*0.996
-    } else if(Tree_class == 4){
-      Sp_CB <-((0.0428*DBH^2.7965*HT^-0.7328)*0.5)*0.943
-    } else if(Tree_class == 5){
-      Sp_CB <-((0.0428*DBH^2.7965*HT^-0.7328)*0.2)*0.991
-    } else if(Tree_class == 6){
-      Sp_CB <-((0.0428*DBH^2.7965*HT^-0.7328)*0.1)*0.555
-    } else if(Tree_class == 7){
-      Sp_CB <-((0.0428*DBH^2.7965*HT^-0.7328)*0)*0.555
-    } else if(Tree_class == 8){
-      Sp_CB <-((0.0428*DBH^2.7965*HT^-0.7328)*0)*0.555
+      Sp_CB <-(0.5*(0.0428*DBH^2.7965*HT^-0.7328))+(0.0854*DBH^2.4388*HT^-0.7630)
+    } else if(Tree_class >= 3){  
+      Sp_CB <-0
     }
   } else if(Species=="Fd"){
     if(Tree_class < 3){
-      Sp_CB <-(0.0351*DBH^2.2421)+(0.0718*DBH^2.2935*HT^-0.4744)
-    } else if(Tree_class == 3){
-      Sp_CB <-((0.0351*DBH^2.2421)*1)*0.892
-    } else if(Tree_class == 4){
-      Sp_CB <-((0.0351*DBH^2.2421)*0.5)*0.831
-    } else if(Tree_class == 5){
-      Sp_CB <-((0.0351*DBH^2.2421)*0.2)*0.591
-    } else if(Tree_class == 6){
-      Sp_CB <-((0.0351*DBH^2.2421)*0.1)*0.433
-    } else if(Tree_class == 7){
-      Sp_CB <-((0.0351*DBH^2.2421)*0)*0.433
-    } else if(Tree_class == 8){
-      Sp_CB <-((0.0351*DBH^2.2421)*0)*0.433
+      Sp_CB <-(0.5*(0.0351*DBH^2.2421))+(0.0718*DBH^2.2935*HT^-0.4744)
+    } else if(Tree_class >= 3){
+      Sp_CB <-0
     }
   } else if(Species=="UC"){
-    if(Tree_class<3){
-      Sp_CB <-(0.0313*DBH^2.9974*HT^-1.0383)+(0.1379*DBH^2.3981*HT^-1.0418)
-    } else if(Tree_class == 3){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*1)*1.005
-    } else if(Tree_class == 4){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0.5)*1.017
-    } else if(Tree_class == 5){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0.2)*1.004
-    } else if(Tree_class == 6){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0.1)*0.659
-    } else if(Tree_class == 7){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0)*0.659
-    } else if(Tree_class == 8){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0)*0.659
+    if(Tree_class < 3){
+      Sp_CB <-(0.5*(0.0313*DBH^2.9974*HT^-1.0383))+(0.1379*DBH^2.3981*HT^-1.0418)
+    } else if(Tree_class >= 3){
+      Sp_CB <-0
     }
   } else if(Species=="Lw"){ #Using Unknown conifer
     if(Tree_class < 3){
-      Sp_CB <-(0.0313*DBH^2.9974*HT^-1.0383)+(0.1379*DBH^2.3981*HT^-1.0418)
-    } else if(Tree_class == 3){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*1)*1.005
-    } else if(Tree_class == 4){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0.5)*1.017
-    } else if(Tree_class == 5){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0.2)*1.004
-    } else if(Tree_class == 6){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0.1)*0.659
-    } else if(Tree_class == 7){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0)*0.659
-    } else if(Tree_class == 8){
-      Sp_CB <-((0.0313*DBH^2.9974*HT^-1.0383)*0)*0.659
+      Sp_CB <-(0.5*(0.0313*DBH^2.9974*HT^-1.0383))+(0.1379*DBH^2.3981*HT^-1.0418)
+    } else if(Tree_class >= 3){
+      Sp_CB <-0
     }
   } else {
     print(paste("Species",Species,"not found"))
