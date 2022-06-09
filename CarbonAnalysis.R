@@ -177,7 +177,7 @@ Soils[,BDcalc_finefract := FineFract_wgt_kg/((BulkDensity_ml/1000000)-
                                                (CoarseFrag_wgt_kg/2650)-(OrgFrag_wgt_kg/500))]#kg/m3
 FR_minSOC_finefract_kg_m2 <- Min_SOC(Soc = Soils[,C_pro], BD = Soils[,BDcalc_finefract],
                                      depth = Soils[,BDDepth], CoarseFrags = Soils[,CoarseAndOrgFragM3M3])
-# getting a negative BD.. 
+ 
 
 #### Soil Organic Carbon ####
 #using 0.5 biomass to C conversion for litter and roots as per Michelle equations
@@ -188,7 +188,33 @@ Soils[,FR_BlackC_kg_m2:= FR_BlackC_kg/(BulkDensity_ml/1000000) * BDDepth]
 Soils[,FR_SOM:= C_pro/0.47]
 Soils[,BDcalc_finefract_g_cm3 := BDcalc_finefract*1000/1e+06] #calculate finefraction
 
-## WCF_9 seems a little wonky - ask Alana if she thinks would should estimate it instead
+## WCF_9 seems a little wonky especially Ccontent - ask Alana if she thinks would should estimate it instead
+#Test the predicted (Perie and Ouimet) BD vs observed BD
+Soils[,BDest_finefract_g_cm3 := -1.977+4.105*FR_SOM - 1.229*log(FR_SOM) - 0.103*log(FR_SOM)^2] #estimate fine fraction
+#plot(Soils[,FR_SOM],Soils[,BDcalc_finefract_g_cm3])
+#x<-Soils$FR_SOM[order(Soils$FR_SOM)]
+#y<- -1.977+4.105*x - 1.229*log(x) - 0.103*log(x)^2
+#lines(x,y)
+
+#plot(Soils$BDest_finefract_g_cm3,Soils$BDcalc_finefract_g_cm3)
+#abline(0,1)
+
+#### Estimating wonky data in plot 9 
+#use estimated fine fraction from Perie and Ouimet
+Soils[PlotID=="WCF_9",BDcalc_finefract := BDest_finefract_g_cm3*1000]
+#back calculate likely volume of hole for 63 to estimate other C volume
+#Soils[ID=="FR63", BulkDensity_ml := (FineFract_wgt_kg/(BDcalc_finefract + (CoarseFrag_wgt_kg/2650) -
+#                                                         (OrgFrag_wgt_kg/500)))*1000000]
+Soils[PlotID=="WCF_9",FR_BlackC_kg_m2 := FR_BlackC_kg/(BulkDensity_ml/1000000) *0.2] #calculate black C Kg/m2
+Soils[PlotID=="WCF_9",CoarseAndOrgFragM3M3 := (CoarseFrag_wgt_kg/2650 + OrgFrag_wgt_kg/500)/ (BulkDensity_ml/1000000) ]
+FR_minSOC_finefract_kg_m2[9] <- Min_SOC(Soc = Soils[PlotID=="WCF_9",C_pro], 
+                                         BD = Soils[PlotID=="WCF_9",BDcalc_finefract],
+                                         depth = 0.2, 
+                                         CoarseFrags = Soils[PlotID=="WCF_9",CoarseAndOrgFragM3M3])
+
+FR_minSOC_kg_m2 <-FR_minSOC_finefract_kg_m2 + Soils[,FR_BlackC_kg_m2] #fine fraction SOC + BlackCarbon C
+FR_minSOC_Mg_ha <- (FR_minSOC_kg_m2/1000)*10000 #convert to Mg per hectare
+site[,MinSoilC_Mgha := FR_minSOC_Mg_ha]
 
 
 ####### ADD TEXTURES ########
@@ -350,24 +376,25 @@ FWD.plot[, carbon:= c]
 PlotFWD <- FWD.plot[, .(FWD_C = sum(carbon)), by = "PlotID"]
 site <- merge(site, PlotFWD, by = "PlotID")
 
-
+#------------------------ Raw data table---------------------------------------#
+fwrite(site, "./Outputs/CarbonPools.csv")
 
 #-------------------------- Data setup-----------------------------------------#
 CarbonPlots <- melt(site, id.vars = c("PlotID", "BECzone", "Year_harvested","BEC_zone_harvest_unit"),
                     measure.vars = c("LiveTreeCperHa","Regen_L_MGHa","Regen_D_MGHa","DeadTreeCperHa",
-                                     "Litter_C_MgHa","ForestFl_MgHa","vFWD_MgHa","CWD_C","FWD_C","LiveRootC"),
+                                     "Litter_C_MgHa","ForestFl_MgHa","vFWD_MgHa","CWD_C","FWD_C","LiveRootC", "MinSoilC_Mgha"),
                     variable.name = "CarbonSource",
                     value.name = "CarbonMgHa")
 site <- merge(site,CarbonPlots[,.(TotalCarbon = sum(na.omit(CarbonMgHa))), by="PlotID"],by="PlotID")
-#FR_treatments <- merge(FR_treatments,CarbonPlots[CarbonSource!="MinSoilC_Mgha",
-                                                 #.(TotalCarbon_NotMin = sum(na.omit(CarbonMgHa))), by="ID"],by="ID")
+site <- merge(site,CarbonPlots[CarbonSource!="MinSoilC_Mgha",
+                               .(TotalCarbon_NotMin = sum(na.omit(CarbonMgHa))), by="PlotID"],by="PlotID")
 site <- merge(site,CarbonPlots[CarbonSource=="LiveTreeCperHa"|
                                  CarbonSource=="DeadTreeCperHa"|
                                  CarbonSource=="CWD_C"|
                                  CarbonSource=="FWD_C",
                                .(AboveGrCarbon = sum(na.omit(CarbonMgHa))),
                                by="PlotID"],by="PlotID")
-site <- merge(site,CarbonPlots[#CarbonSource=="MinSoilC_Mgha"|
+site <- merge(site,CarbonPlots[CarbonSource=="MinSoilC_Mgha"|
                                  CarbonSource=="Litter_C_MgHa"|
                                  CarbonSource=="ForestFl_MgHa"|
                                  CarbonSource=="vFWD_MgHA"|
@@ -396,8 +423,8 @@ site <- merge(site,CarbonPlots[CarbonSource=="ForestFl_MgHa"|
                                  CarbonSource=="vFWD_MgHA",
                                .(ForestFloorTotC = sum(na.omit(CarbonMgHa))),
                                by="PlotID"],by="PlotID")
-site <- merge(site,CarbonPlots[CarbonSource=="ForestFl_MgHa",
-                                 #CarbonSource=="MinSoilC_Mgha",
+site <- merge(site,CarbonPlots[CarbonSource=="ForestFl_MgHa"|
+                                 CarbonSource=="MinSoilC_Mgha",
                                  .(Min_FF = sum(na.omit(CarbonMgHa))),
                                by="PlotID"],by="PlotID")
 site <- merge(site,CarbonPlots[CarbonSource=="MinSoilC_Mgha" |
@@ -406,42 +433,26 @@ site <- merge(site,CarbonPlots[CarbonSource=="MinSoilC_Mgha" |
                                  CarbonSource=="vFWD_MgHa",
                                .(Min_FF_L_vFWD = sum(na.omit(CarbonMgHa))),
                                by="PlotID"],by="PlotID")
-site[,DeadConst:=(DeadCarbon+0.01)]
-site[,FFConst:=(ForestFloorTotC+0.01)]
-
-site_tables <- melt(site, id.vars = c("PlotID","Year_harvested","BECzone", "BEC_zone_harvest_unit"),
-                    measure.vars = c("LiveTreeCperHa","Regen_L_MGHa","LiveRootC","DeadTreeCperHa","Regen_D_MGHa",
-                                   "CWD_C","FWD_C"),
-                    variable.name = "CarbonPool",
-                    value.name = "CarbonMgHa")
-site_tables[,harv_cat:=ifelse(Year_harvested >2014,2015,
-                           ifelse(Year_harvested >2012,2013,
-                                  ifelse(Year_harvested > 2008, 2009,
-                                         0)))]
-site_pool_summary <- site_tables[,.(mn_CarbonMgHa=mean(CarbonMgHa),sd_CarbonMgHa=sd(CarbonMgHa)),
-                                 by=c("CarbonPool","BECzone", "harv_cat")]
-
-site[,harv_cat:=ifelse(Year_harvested >2011, "2013-2016", "2009-2012")]
 
 
 #---------------------------------- Figures------------------------------------#
 
-pools <- site[,.(PlotID, BECzone, harv_cat, TotalCarbon, LiveCarbon, DeadCarbon, ForestFloorTotC)]
+pools <- site[,.(PlotID, BECzone, LiveCarbon, DeadCarbon, ForestFloorTotC)]
 
 
-pools_m <- melt(pools,id.vars = c("PlotID","BECzone","harv_cat"),
-                measure.vars = c("TotalCarbon","LiveCarbon","DeadCarbon","ForestFloorTotC"),
+pools_m <- melt(pools,id.vars = c("PlotID","BECzone"),
+                measure.vars = c("LiveCarbon","DeadCarbon","ForestFloorTotC"),
                 variable.name = "CarbonPool",
                 value.name = "CarbonMgHa")
 
-table(pools_m[,.(BECzone,harv_cat)])
+table(pools_m[,.(BECzone)])
 means <- pools_m[,.(mn_CarbonMgHa=mean(CarbonMgHa),sd_CarbonMgHa=sd(CarbonMgHa)),
-                 by=c("CarbonPool","BECzone","harv_cat")]
+                 by=c("CarbonPool","BECzone")]
 
-supp.labs <- c("Total","Live","Dead","Forest floor")
-names(supp.labs) <- c("TotalCarbon","LiveCarbon","DeadCarbon","ForestFloorTotC")
+supp.labs <- c("Live","Dead","Forest floor")
+names(supp.labs) <- c("LiveCarbon","DeadCarbon","ForestFloorTotC")
 
-ggplot(pools_m,aes(x=harv_cat, y=CarbonMgHa))+
+ggplot(pools_m,aes(x=BECzone, y=CarbonMgHa))+
   geom_point(size=2,aes(colour=BECzone))+
   geom_smooth(method="lm",aes(colour=BECzone,fill=BECzone))+
   scale_color_npg()+
@@ -451,6 +462,16 @@ ggplot(pools_m,aes(x=harv_cat, y=CarbonMgHa))+
   xlab("Time since harvest")+
   theme(legend.position = "bottom")+
   facet_wrap("CarbonPool",labeller=labeller(CarbonPool=supp.labs))+
+  theme(strip.text.x = element_text(face="bold"))
+
+ggplot(pools_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
+  geom_col(position="stack")+
+  scale_color_npg()+
+  scale_fill_npg()+
+  theme_minimal() +
+  ylab(expression("Mg" ~ ha^-2))+
+  xlab("BEC zone")+
+  theme(legend.position = "bottom")+
   theme(strip.text.x = element_text(face="bold"))
 
 
