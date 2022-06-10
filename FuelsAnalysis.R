@@ -6,7 +6,7 @@
 
 #------------------------ Load libraries---------------------------------------#
 #--------------- Load libraries----------------#
-ls <- c("tidyverse", "data.table") # Data Management and Manipulation
+ls <- c("tidyverse", "data.table", "ggarrange") # Data Management and Manipulation
 ls <- append(ls, c("ggsci")) # figures
 
 # Install if needed -- then load. 
@@ -45,6 +45,9 @@ CWD[,PlotID:= as.factor(PlotID)][,Species:= as.factor(Species)]
 FWD[,PlotID:= as.factor(PlotID)]
 transect[,PlotID:= as.factor(PlotID)]
 Soils[, PlotID:= as.factor(PlotID)]
+
+# reorder BECzone to wettest to driest 
+site$BECzone <- ordered(site$BECzone, levels = c("ESSFmc", "SBSmc2", "SBSdk"))
 
 #------------------------ Calculate Canopy Fuel Structure----------------------#
 #---------------------------- Tree
@@ -287,19 +290,17 @@ site[, Duff:= Soils[,(ForFloor_DryWgt/16)]] #converting to Mg/Ha
 mod_cols <- c("1000hr_sound","1000hr_rotten","100hr","10hr", "1hr","Litter", "Duff")
 site[,(mod_cols) := lapply(.SD, "/",10), .SDcols=mod_cols]
 
-
+#------------------------ Raw data table---------------------------------------#
+#fwrite(site, "./Outputs/FuelType.csv")
 
 
 #-------------------------- Data setup-----------------------------------------#
 FuelPlots <- melt(site, id.vars = c("PlotID", "BECzone", "YearsSinceHrvst"),
-                    measure.vars = c("CFL","CBD","CBH","1000hr_sound", "1000hr_rotten", "100hr", "10hr",
+                    measure.vars = c("CFL","1000hr_sound", "1000hr_rotten", "100hr", "10hr",
                                      "1hr","Litter","Duff"),
                     variable.name = "FuelType",
                     value.name = "kgM2")
-site <- merge(site,FuelPlots[FuelType!="CBD"|
-                               FuelType!="CBH",
-                             .(TotalFuels = sum(na.omit(kgM2)))
-                             , by="PlotID"],by="PlotID")
+site <- merge(site,FuelPlots[,.(TotalFuels = sum(na.omit(kgM2))), by="PlotID"],by="PlotID")
 site <- merge(site,FuelPlots[FuelType=="1000hr_sound"|
                                FuelType=="1000hr_rotten"|
                                FuelType=="100hr"|
@@ -313,119 +314,174 @@ site <- merge(site,FuelPlots[FuelType=="Litter"|
                              by="PlotID"],by="PlotID")
 
 site_m <- melt(site, id.vars = c("PlotID", "BECzone", "YearsSinceHrvst"),
-                    measure.vars = c("CFL","CBD","CBH","1000hr_sound", "1000hr_rotten", "100hr", "10hr",
+                    measure.vars = c("CFL","1000hr_sound", "1000hr_rotten", "100hr", "10hr",
                                      "1hr","Litter","Duff", "DDWoodyFuels", "SurfaceFuels", "TotalFuels"),
                     variable.name = "FuelType",
                     value.name = "kgM2")
 
-site_summary <- site_tables[,.(mn_kgM2=mean(kgM2),sd_kgM2=sd(kgM2)),
-                                 by=c("FuelType","BECzone", "YearsSinceHrvst")]
-
 
 #---------------------------------- Figures------------------------------------#
 
-# All fuel types
-all.labs <- c("CBD","CFL","CBH", "1000hr_sound", "1000hr_rotten", "100hr", "10hr",
-               "1hr","Litter","Duff", "DDWoodyFuels", "SurfaceFuels", "TotalFuels")
-names(all.labs) <- c("CBD","CFL","CBH", "1000hr_sound", "1000hr_rotten", "100hr", "10hr",
-                      "1hr","Litter","Duff", "DDWoodyFuels", "SurfaceFuels", "TotalFuels")
+# Total fuels - BEC zone .. don't use, too much going on
+total <- site[,. (PlotID,BECzone, CFL, `1000hr_sound`, `1000hr_rotten`,`100hr`,`10hr`,`1hr`,Litter,Duff)]
 
-ggplot(site_m,aes(x=YearsSinceHrvst, y=kgM2))+
-  geom_point(size=2,aes(colour=BECzone))+
-  geom_smooth(method="lm",aes(colour=BECzone,fill=BECzone))+
-  scale_color_npg()+
-  scale_fill_npg()+
-  theme_minimal() +
-  ylab(expression("kg" ~ m^-2))+
-  xlab("Years since harvest")+
-  theme(legend.position = "bottom")+
-  facet_wrap("FuelType",labeller=labeller(FuelType=all.labs))+
-  theme(strip.text.x = element_text(face="bold"))
-
-
-# Canopy bulk density
-canopyBD <- site[,. (PlotID,BECzone,YearsSinceHrvst,CBD, CBH)]
-
-canopyBD_m <- melt(canopyBD,id.vars = c("PlotID","BECzone","YearsSinceHrvst"),
-                 measure.vars = c("CBD", "CBH"),
+total_m <- melt(total,id.vars = c("PlotID","BECzone"),
+                 measure.vars = c("CFL", "1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr", "Litter", "Duff"),
                  variable.name = "FuelType",
                  value.name = "kgM2")
 
-canopy.labs <- c("Canopy Bulk Density", "Canopy Base Height")
-names(canopy.labs) <- c("CBD", "CBH")
+supp.labs <- c("Canopy fuel load", "1000hr sound", "1000hr rotten", "100hr", "10hr",
+               "1hr","Litter","Duff")
+names(supp.labs) <- c("CFL", "1000hr_sound", "1000hr_rotten", "100hr", "10hr",
+                      "1hr","Litter","Duff")
 
-ggplot(canopyBD_m,aes(x=YearsSinceHrvst, y=kgM2, colour=FuelType))+
-  geom_point()+
-  scale_color_npg()+
-  scale_fill_npg()+
+ggplot(total_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
+  geom_col(position="stack")+
+  scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
-  ylab(expression("kg" ~ m^-3))+
-  xlab("Years since harvest")+
-  theme(legend.position = "bottom")+
-  facet_wrap("FuelType",labeller=labeller(FuelType=canopy.labs))+
-  theme(strip.text.x = element_text(face="bold"))
+  ylab(expression("kg" ~ m^-2))+
+  xlab("BEC zone")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=6),
+        legend.title=element_text(size=7),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold"))+
+  labs(fill = "Fuel Type")
+
+
+# Canopy, hourly, surface fuels
+fuelType <- site[,. (PlotID,BECzone,CFL,DDWoodyFuels,SurfaceFuels)]
+
+fuelType_m <- melt(fuelType,id.vars = c("PlotID","BECzone","CFL","DDWoodyFuels","SurfaceFuels"),
+                 measure.vars = c("CFL","DDWoodyFuels","SurfaceFuels"),
+                 variable.name = "FuelType",
+                 value.name = "kgM2")
+
+supp.labs <- c("Canopy Fuel\nLoad", "Hourly", "Surface")
+names(supp.labs) <- c("CFL", "DDWoodyFuels", "SurfaceFuels")
+
+type <- ggplot(fuelType_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
+  geom_col(position="stack")+
+  scale_fill_npg(labels=supp.labs)+
+  theme_minimal() +
+  ylab(expression("kg" ~ m^-2))+
+  xlab("BEC zone")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=6),
+        legend.title=element_text(size=7),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold"))+
+  labs(fill = "Fuel Type")
+type
 
 # Hourly fuels
-hourly <- site[,. (PlotID,BECzone,YearsSinceHrvst,`1000hr_sound`,`1000hr_rotten`,`100hr`,`10hr`,`1hr`)]
+hourly <- site[,. (PlotID,BECzone,`1000hr_sound`,`1000hr_rotten`,`100hr`,`10hr`,`1hr`)]
 
-hourly_m <- melt(hourly,id.vars = c("PlotID","BECzone","YearsSinceHrvst"),
+hourly_m <- melt(hourly,id.vars = c("PlotID","BECzone"),
                  measure.vars = c("1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr"),
                  variable.name = "FuelType",
                  value.name = "kgM2")
 
-hr.labs <- c("1000hr sound", "1000hr rotten", "100hr", "10hr", "1hr")
-names(hr.labs) <- c("1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr")
+supp.labs <- c("1000hr\nsound", "1000hr\nrotten", "100hr", "10hr", "1hr")
+names(supp.labs) <- c("1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr")
 
-ggplot(hourly_m, aes(x=YearsSinceHrvst, y=kgM2, fill=FuelType))+
+hourlyP <- ggplot(hourly_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
   geom_col(position="stack")+
-  scale_color_npg()+
-  scale_fill_npg()+
+  scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
   ylab(expression("kg" ~ m^-2))+
-  xlab("Years since harvest")+
-  theme(legend.position = "bottom")+
-  theme(strip.text.x = element_text(face="bold"))
-
-ggplot(hourly_m, aes(x=YearsSinceHrvst, y=kgM2, colour=FuelType))+
-  geom_point(size=2,aes(colour=FuelType))+
-  geom_smooth(method="lm",aes(colour=FuelType,fill=FuelType))+
-  scale_color_npg()+
-  scale_fill_npg()+
-  theme_minimal() +
-  ylab(expression("kg" ~ m^-2))+
-  xlab("Years since harvest")+
-  theme(legend.position = "bottom")+
-  theme(strip.text.x = element_text(face="bold"))
-
+  xlab("BEC zone")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=6),
+        legend.title=element_text(size=7),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold"))+
+  labs(fill = "Hourly\nFuel Type")
+hourlyP
 
 # Surface fuels
-surface <- site[,. (PlotID,BECzone,YearsSinceHrvst,Litter,Duff)]
+surface <- site[,. (PlotID,BECzone,Litter,Duff)]
 
-surface_m <- melt(surface,id.vars = c("PlotID","BECzone","YearsSinceHrvst"),
+surface_m <- melt(surface,id.vars = c("PlotID","BECzone"),
                  measure.vars = c("Litter", "Duff"),
                  variable.name = "FuelType",
                  value.name = "kgM2")
 
-surf.labs <- c("Litter", "Duff")
-names(surf.labs) <- c("Litter", "Duff")
+supp.labs <- c("Litter", "Duff")
+names(supp.labs) <- c("Litter", "Duff")
 
-ggplot(surface_m, aes(x=YearsSinceHrvst, y=kgM2, fill=FuelType))+
-  geom_bar(position="stack", stat="identity")+
-  scale_color_npg()+
-  scale_fill_npg()+
+surfaceP <- ggplot(surface_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
+  geom_col(position="stack")+
+  scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
   ylab(expression("kg" ~ m^-2))+
-  xlab("Years since harvest")+
-  theme(legend.position = "bottom")+
-  theme(strip.text.x = element_text(face="bold"))
+  xlab("BEC zone")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=6),
+        legend.title=element_text(size=7),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold"))+
+  labs(fill = "Surface\nFuel Type")
+surfaceP
 
-ggplot(surface_m, aes(x=YearsSinceHrvst, y=kgM2, colour=FuelType))+
-  geom_point(size=2,aes(colour=FuelType))+
-  geom_smooth(method="lm",aes(colour=FuelType,fill=FuelType))+
-  scale_color_npg()+
-  scale_fill_npg()+
+# Group plots together
+ggarrange(type, hourlyP, surfaceP,
+          labels = c("A", "B", "C"),
+          font.label = list(size = 10))
+
+ggsave("./Outputs/FuelTypes.png",
+       height=5.4,
+       width=7.4)
+
+
+#------------year harvested figures..not going to use, not very interesting----#
+# Total fuels - year harvested
+total.year <- site[,. (PlotID,Year_harvested, CFL, `1000hr_sound`, `1000hr_rotten`,`100hr`,`10hr`,`1hr`,Litter,Duff)]
+
+total.year_m <- melt(total.year,id.vars = c("PlotID","Year_harvested"),
+                measure.vars = c("CFL", "1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr", "Litter", "Duff"),
+                variable.name = "FuelType",
+                value.name = "kgM2")
+
+supp.labs <- c("Canopy fuel load", "1000hr sound", "1000hr rotten", "100hr", "10hr",
+               "1hr","Litter","Duff")
+names(supp.labs) <- c("CFL", "1000hr_sound", "1000hr_rotten", "100hr", "10hr",
+                      "1hr","Litter","Duff")
+
+ggplot(total.year_m, aes(x=Year_harvested, y=kgM2, fill=FuelType))+
+  geom_col(position="stack")+
+  scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
   ylab(expression("kg" ~ m^-2))+
-  xlab("Years since harvest")+
-  theme(legend.position = "bottom")+
-  theme(strip.text.x = element_text(face="bold"))
+  xlab("Year harvested")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=6),
+        legend.title=element_text(size=8),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold"))+
+  labs(fill = "Fuel Type")
+
+# Hourly fuels - year harvrested
+hourly.year <- site[,. (PlotID,Year_harvested,`1000hr_sound`,`1000hr_rotten`,`100hr`,`10hr`,`1hr`)]
+
+hourly.year_m <- melt(hourly.year,id.vars = c("PlotID","Year_harvested"),
+                 measure.vars = c("1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr"),
+                 variable.name = "FuelType",
+                 value.name = "kgM2")
+
+supp.labs <- c("1000hr sound", "1000hr rotten", "100hr", "10hr", "1hr")
+names(supp.labs) <- c("1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr")
+
+ggplot(hourly.year_m, aes(x=Year_harvested, y=kgM2, fill=FuelType))+
+  geom_col(position="stack")+
+  scale_fill_npg(labels=supp.labs)+
+  theme_minimal() +
+  ylab(expression("kg" ~ m^-2))+
+  xlab("Year harvested")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=6),
+        legend.title=element_text(size=8),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold"))+
+  labs(fill = "Fuel Type")
+

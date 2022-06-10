@@ -6,7 +6,7 @@
 
 #------------------------ Load libraries---------------------------------------#
 #--------------- Load libraries----------------#
-ls <- c("tidyverse", "data.table") # Data Management and Manipulation
+ls <- c("tidyverse", "data.table", "ggpubr") # Data Management and Manipulation
 ls <- append(ls, c("ggsci")) # figures
 
 # Install if needed -- then load. 
@@ -45,6 +45,9 @@ CWD[,PlotID:= as.factor(PlotID)][,Species:= as.factor(Species)]
 FWD[,PlotID:= as.factor(PlotID)]
 transect[,PlotID:= as.factor(PlotID)]
 Soils[, PlotID:= as.factor(PlotID)]
+
+# reorder BECzone to wettest to driest 
+site$BECzone <- ordered(site$BECzone, levels = c("ESSFmc", "SBSmc2", "SBSdk"))
 
 #---------------------------- Calculate carbon pools---------------------------#
 #---------------------------- Tree Carbon
@@ -377,7 +380,7 @@ PlotFWD <- FWD.plot[, .(FWD_C = sum(carbon)), by = "PlotID"]
 site <- merge(site, PlotFWD, by = "PlotID")
 
 #------------------------ Raw data table---------------------------------------#
-fwrite(site, "./Outputs/CarbonPools.csv")
+#fwrite(site, "./Outputs/CarbonPools.csv")
 
 #-------------------------- Data setup-----------------------------------------#
 CarbonPlots <- melt(site, id.vars = c("PlotID", "BECzone", "Year_harvested","BEC_zone_harvest_unit"),
@@ -436,7 +439,7 @@ site <- merge(site,CarbonPlots[CarbonSource=="MinSoilC_Mgha" |
 
 
 #---------------------------------- Figures------------------------------------#
-
+# Live, dead, ff carbon pools
 pools <- site[,.(PlotID, BECzone, LiveCarbon, DeadCarbon, ForestFloorTotC)]
 
 
@@ -445,33 +448,83 @@ pools_m <- melt(pools,id.vars = c("PlotID","BECzone"),
                 variable.name = "CarbonPool",
                 value.name = "CarbonMgHa")
 
-table(pools_m[,.(BECzone)])
-means <- pools_m[,.(mn_CarbonMgHa=mean(CarbonMgHa),sd_CarbonMgHa=sd(CarbonMgHa)),
-                 by=c("CarbonPool","BECzone")]
-
-supp.labs <- c("Live","Dead","Forest floor")
+supp.labs <- c("Live","Dead","Forest Floor")
 names(supp.labs) <- c("LiveCarbon","DeadCarbon","ForestFloorTotC")
 
-ggplot(pools_m,aes(x=BECzone, y=CarbonMgHa))+
-  geom_point(size=2,aes(colour=BECzone))+
-  geom_smooth(method="lm",aes(colour=BECzone,fill=BECzone))+
-  scale_color_npg()+
-  scale_fill_npg()+
-  theme_minimal() +
-  ylab(expression("Carbon Mg" ~ ha^-1))+
-  xlab("Time since harvest")+
-  theme(legend.position = "bottom")+
-  facet_wrap("CarbonPool",labeller=labeller(CarbonPool=supp.labs))+
-  theme(strip.text.x = element_text(face="bold"))
-
-ggplot(pools_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
+all <- ggplot(pools_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
   geom_col(position="stack")+
   scale_color_npg()+
-  scale_fill_npg()+
+  scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
   ylab(expression("Mg" ~ ha^-2))+
   xlab("BEC zone")+
-  theme(legend.position = "bottom")+
-  theme(strip.text.x = element_text(face="bold"))
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=8),
+        legend.title=element_text(size=9),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold")) +
+  labs(fill = "Carbon Pool")
+all
 
 
+# Mineral soil
+MinSoil <- site[,.(PlotID, BECzone, MinSoilC_Mgha)]
+
+MinSoil_m <- melt(MinSoil,id.vars = c("PlotID","BECzone"),
+                measure.vars = c("MinSoilC_Mgha"),
+                variable.name = "CarbonPool",
+                value.name = "CarbonMgHa")
+
+supp.labs <- c("Mineral Soil")
+names(supp.labs) <- c("MinSoilC_Mgha")
+
+min <- ggplot(MinSoil_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
+  geom_col(position="stack")+
+  scale_color_npg()+
+  scale_fill_npg(labels = supp.labs)+
+  theme_minimal() +
+  ylab(expression("Mg" ~ ha^-2))+
+  xlab("BEC zone")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=8),
+        legend.title=element_text(size=9),
+        text=element_text(size=8))+
+  labs(fill = "Carbon Pool")
+min
+
+
+# Dead carbon pool
+woody <- site[,.(PlotID, BECzone, DeadTreeCperHa, CWD_C, FWD_C)]
+
+woody_m <- melt(woody,id.vars = c("PlotID","BECzone"),
+                  measure.vars = c("DeadTreeCperHa", "CWD_C", "FWD_C"),
+                  variable.name = "CarbonPool",
+                  value.name = "CarbonMgHa")
+
+supp.labs <- c("Snags", "CWD", "FWD")
+names(supp.labs) <- c("DeadTreeCperHa", "CWD_C", "FWD_C")
+
+woodyP <- ggplot(woody_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
+  geom_col(position="stack")+
+  scale_color_npg()+
+  scale_fill_npg(labels = supp.labs)+
+  theme_minimal() +
+  ylab(expression("Mg" ~ ha^-2))+
+  xlab("BEC zone")+
+  theme(legend.position = "bottom",
+        legend.text=element_text(size=8),
+        legend.title=element_text(size=9),
+        text=element_text(size=8))+
+  theme(strip.text.x = element_text(face="bold")) +
+  labs(fill = "Dead Carbon\nPool")
+woodyP
+
+
+# Group plots together
+ggarrange(all, min, woodyP,
+          labels = c("A", "B", "C"),
+          font.label = list(size = 10))
+
+ggsave("./Outputs/CarbonPools.png",
+       height=5.4,
+       width=7.4)
