@@ -6,7 +6,7 @@
 
 #------------------------ Load libraries---------------------------------------#
 #--------------- Load libraries----------------#
-ls <- c("tidyverse", "data.table", "ggarrange") # Data Management and Manipulation
+ls <- c("tidyverse", "data.table", "ggpubr") # Data Management and Manipulation
 ls <- append(ls, c("ggsci")) # figures
 
 # Install if needed -- then load. 
@@ -322,33 +322,6 @@ site_m <- melt(site, id.vars = c("PlotID", "BECzone", "YearsSinceHrvst"),
 
 #---------------------------------- Figures------------------------------------#
 
-# Total fuels - BEC zone .. don't use, too much going on
-total <- site[,. (PlotID,BECzone, CFL, `1000hr_sound`, `1000hr_rotten`,`100hr`,`10hr`,`1hr`,Litter,Duff)]
-
-total_m <- melt(total,id.vars = c("PlotID","BECzone"),
-                 measure.vars = c("CFL", "1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr", "Litter", "Duff"),
-                 variable.name = "FuelType",
-                 value.name = "kgM2")
-
-supp.labs <- c("Canopy fuel load", "1000hr sound", "1000hr rotten", "100hr", "10hr",
-               "1hr","Litter","Duff")
-names(supp.labs) <- c("CFL", "1000hr_sound", "1000hr_rotten", "100hr", "10hr",
-                      "1hr","Litter","Duff")
-
-ggplot(total_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
-  geom_col(position="stack")+
-  scale_fill_npg(labels=supp.labs)+
-  theme_minimal() +
-  ylab(expression("kg" ~ m^-2))+
-  xlab("BEC zone")+
-  theme(legend.position = "bottom",
-        legend.text=element_text(size=6),
-        legend.title=element_text(size=7),
-        text=element_text(size=8))+
-  theme(strip.text.x = element_text(face="bold"))+
-  labs(fill = "Fuel Type")
-
-
 # Canopy, hourly, surface fuels
 fuelType <- site[,. (PlotID,BECzone,CFL,DDWoodyFuels,SurfaceFuels)]
 
@@ -361,7 +334,7 @@ supp.labs <- c("Canopy Fuel\nLoad", "Hourly", "Surface")
 names(supp.labs) <- c("CFL", "DDWoodyFuels", "SurfaceFuels")
 
 type <- ggplot(fuelType_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
-  geom_col(position="stack")+
+  geom_bar(position="stack", stat="summary", fun="mean")+
   scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
   ylab(expression("kg" ~ m^-2))+
@@ -371,7 +344,8 @@ type <- ggplot(fuelType_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
         legend.title=element_text(size=7),
         text=element_text(size=8))+
   theme(strip.text.x = element_text(face="bold"))+
-  labs(fill = "Fuel Type")
+  labs(fill = "Fuel Type") +
+  ylim(0, 10) # so the final plot has the same y axis scale
 type
 
 # Hourly fuels
@@ -386,7 +360,7 @@ supp.labs <- c("1000hr\nsound", "1000hr\nrotten", "100hr", "10hr", "1hr")
 names(supp.labs) <- c("1000hr_sound", "1000hr_rotten", "100hr", "10hr", "1hr")
 
 hourlyP <- ggplot(hourly_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
-  geom_col(position="stack")+
+  geom_bar(position="stack", stat="summary", fun="mean")+
   scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
   ylab(expression("kg" ~ m^-2))+
@@ -396,7 +370,8 @@ hourlyP <- ggplot(hourly_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
         legend.title=element_text(size=7),
         text=element_text(size=8))+
   theme(strip.text.x = element_text(face="bold"))+
-  labs(fill = "Hourly\nFuel Type")
+  labs(fill = "Hourly\nFuel Type") +
+  ylim(0, 10) # so the final plot has the same y axis scale
 hourlyP
 
 # Surface fuels
@@ -411,7 +386,7 @@ supp.labs <- c("Litter", "Duff")
 names(supp.labs) <- c("Litter", "Duff")
 
 surfaceP <- ggplot(surface_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
-  geom_col(position="stack")+
+  geom_bar(position="stack", stat="summary", fun="mean")+
   scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
   ylab(expression("kg" ~ m^-2))+
@@ -421,7 +396,8 @@ surfaceP <- ggplot(surface_m, aes(x=BECzone, y=kgM2, fill=FuelType))+
         legend.title=element_text(size=7),
         text=element_text(size=8))+
   theme(strip.text.x = element_text(face="bold"))+
-  labs(fill = "Surface\nFuel Type")
+  labs(fill = "Surface\nFuel Type") +
+  ylim(0, 10) # so the final plot has the same y axis scale
 surfaceP
 
 # Group plots together
@@ -430,7 +406,7 @@ ggarrange(type, hourlyP, surfaceP,
           font.label = list(size = 10))
 
 ggsave("./Outputs/FuelTypes.png",
-       height=5.4,
+       height=7.4,
        width=7.4)
 
 

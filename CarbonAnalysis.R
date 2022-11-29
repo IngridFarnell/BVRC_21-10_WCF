@@ -210,7 +210,7 @@ Soils[PlotID=="WCF_9",BDcalc_finefract := BDest_finefract_g_cm3*1000]
 #                                                         (OrgFrag_wgt_kg/500)))*1000000]
 Soils[PlotID=="WCF_9",FR_BlackC_kg_m2 := FR_BlackC_kg/(BulkDensity_ml/1000000) *0.2] #calculate black C Kg/m2
 Soils[PlotID=="WCF_9",CoarseAndOrgFragM3M3 := (CoarseFrag_wgt_kg/2650 + OrgFrag_wgt_kg/500)/ (BulkDensity_ml/1000000) ]
-FR_minSOC_finefract_kg_m2[9] <- Min_SOC(Soc = Soils[PlotID=="WCF_9",C_pro], 
+FR_minSOC_finefract_kg_m2[9] <- Min_SOC(Soc = Soils[PlotID!="WCF_9",mean(C_pro)], # average of other plots
                                          BD = Soils[PlotID=="WCF_9",BDcalc_finefract],
                                          depth = 0.2, 
                                          CoarseFrags = Soils[PlotID=="WCF_9",CoarseAndOrgFragM3M3])
@@ -440,19 +440,19 @@ site <- merge(site,CarbonPlots[CarbonSource=="MinSoilC_Mgha" |
 
 #---------------------------------- Figures------------------------------------#
 # Live, dead, ff carbon pools
-pools <- site[,.(PlotID, BECzone, LiveCarbon, DeadCarbon, ForestFloorTotC)]
+pools <- site[,.(PlotID, BECzone, LiveCarbon, DeadCarbon, ForestFloorTotC, MinSoilC_Mgha)]
 
 
 pools_m <- melt(pools,id.vars = c("PlotID","BECzone"),
-                measure.vars = c("LiveCarbon","DeadCarbon","ForestFloorTotC"),
+                measure.vars = c("LiveCarbon","DeadCarbon","ForestFloorTotC", "MinSoilC_Mgha"),
                 variable.name = "CarbonPool",
                 value.name = "CarbonMgHa")
 
-supp.labs <- c("Live","Dead","Forest Floor")
-names(supp.labs) <- c("LiveCarbon","DeadCarbon","ForestFloorTotC")
+supp.labs <- c("Live","Dead","Forest Floor", "Mineral Soil")
+names(supp.labs) <- c("LiveCarbon","DeadCarbon","ForestFloorTotC", "MinSoilC_Mgha")
 
 all <- ggplot(pools_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
-  geom_col(position="stack")+
+  geom_bar(position="stack", stat="summary", fun="mean")+
   scale_color_npg()+
   scale_fill_npg(labels=supp.labs)+
   theme_minimal() +
@@ -463,7 +463,8 @@ all <- ggplot(pools_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
         legend.title=element_text(size=9),
         text=element_text(size=8))+
   theme(strip.text.x = element_text(face="bold")) +
-  labs(fill = "Carbon Pool")
+  labs(fill = "Carbon Pool") +
+  ylim(0,75) # so the final plot has the same y axis scale
 all
 
 
@@ -479,7 +480,7 @@ supp.labs <- c("Mineral Soil")
 names(supp.labs) <- c("MinSoilC_Mgha")
 
 min <- ggplot(MinSoil_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
-  geom_col(position="stack")+
+  geom_bar(position="stack", stat="summary", fun="mean")+
   scale_color_npg()+
   scale_fill_npg(labels = supp.labs)+
   theme_minimal() +
@@ -489,7 +490,8 @@ min <- ggplot(MinSoil_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
         legend.text=element_text(size=8),
         legend.title=element_text(size=9),
         text=element_text(size=8))+
-  labs(fill = "Carbon Pool")
+  labs(fill = "Carbon Pool")+
+  ylim(0,75) # so the final plot has the same y axis scale
 min
 
 
@@ -505,7 +507,7 @@ supp.labs <- c("Snags", "CWD", "FWD")
 names(supp.labs) <- c("DeadTreeCperHa", "CWD_C", "FWD_C")
 
 woodyP <- ggplot(woody_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
-  geom_col(position="stack")+
+  geom_bar(position="stack", stat="summary", fun="mean")+
   scale_color_npg()+
   scale_fill_npg(labels = supp.labs)+
   theme_minimal() +
@@ -516,14 +518,16 @@ woodyP <- ggplot(woody_m, aes(x=BECzone, y=CarbonMgHa, fill=CarbonPool))+
         legend.title=element_text(size=9),
         text=element_text(size=8))+
   theme(strip.text.x = element_text(face="bold")) +
-  labs(fill = "Dead Carbon\nPool")
+  labs(fill = "Dead Carbon\nPool") +
+  ylim(0,75) # so the final plot has the same y axis scale
 woodyP
 
 
 # Group plots together
-ggarrange(all, min, woodyP,
-          labels = c("A", "B", "C"),
-          font.label = list(size = 10))
+ggarrange(all, woodyP,
+          labels = c("A", "B"),
+          font.label = list(size = 10),
+          align = "hv")
 
 ggsave("./Outputs/CarbonPools.png",
        height=5.4,
